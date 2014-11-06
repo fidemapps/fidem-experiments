@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "jsandbox": "https://github.com/eligrey/jsandbox.git",
-    "bootstrap": "~3.3.0"
+    "bootstrap": "~3.3.0",
+    "jquery-serialize-object": "~2.4.3"
   }
 }

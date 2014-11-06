@@ -1,13 +1,8 @@
 var gulp = require('gulp');
-var browserSync = require('browser-sync');
+var nodemon = require('gulp-nodemon');
 
-// Static server.
-gulp.task('browser-sync', function() {
-  browserSync({
-    server: {
-      baseDir: './'
-    }
-  });
+gulp.task('server', function () {
+  return nodemon({script: 'server.js'});
 });
 
-gulp.task('default', ['browser-sync']);
+gulp.task('default', ['server']);

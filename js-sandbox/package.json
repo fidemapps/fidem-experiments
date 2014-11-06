@@ -2,8 +2,12 @@
   "name": "js-sandbox",
   "version": "0.0.0",
   "private": true,
-  "devDependencies": {
-    "browser-sync": "^1.6.3",
-    "gulp": "^3.8.10"
+  "dependencies": {
+    "body-parser": "^1.9.2",
+    "express": "^4.10.1",
+    "gulp": "^3.8.10",
+    "gulp-nodemon": "^1.0.4",
+    "sandbox": "^0.8.6",
+    "sandcastle": "^1.2.1"
   }
 }

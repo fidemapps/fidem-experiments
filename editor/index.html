@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Editor example</title>
+  <link rel="stylesheet" href="/bower_components/bootstrap/dist/css/bootstrap.css">
+  <link rel="stylesheet" href="/bower_components/bootstrap/dist/css/bootstrap-theme.css">
+  <link rel="stylesheet" href="/bower_components/jquery-textcomplete/dist/jquery.textcomplete.css">
+</head>
+<body>
+  <div class="container">
+
+    <h1>Editor example</h1>
+
+    <p class="muted">Start by typing "my" and insert a space.</p>
+
+    <div class="form-group">
+      <label for="rule">Rule</label>
+      <textarea class="form-control" id="rule" placeholder="Enter rule" rows="5"></textarea>
+    </div>
+  </div>
+
+  <script src="/bower_components/jquery/dist/jquery.js"></script>
+  <script src="/bower_components/jquery-textcomplete/dist/jquery.textcomplete.js"></script>
+  <script>
+    function createMatcher(regexp, choices) {
+      $('#rule').textcomplete([{
+        match: regexp,
+        search: function (term, callback) {
+          callback($.map(choices, function (word) {
+            return word.indexOf(term) === 0 ? word : null;
+          }));
+        },
+        index: 2,
+        replace: function (word) {
+          return '$1' + word + ' ';
+        }
+      }]).on('textComplete:select', function () {
+        $(this).textcomplete('trigger');
+      });
+    }
+
+    createMatcher(/(my )(\w*)$/, ['rule', 'beautiful']);
+    createMatcher(/(beautiful )(\w*)$/, ['rule']);
+    createMatcher(/(rule )(\w*)$/, ['is']);
+    createMatcher(/(is )(\w*)$/, ['good']);
+  </script>
+</body>
+</html>

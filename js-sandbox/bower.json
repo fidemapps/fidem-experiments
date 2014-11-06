@@ -1,0 +1,13 @@
+{
+  "name": "js-sandbox",
+  "version": "0.0.0",
+  "private": true,
+  "authors": [
+    "Greg Bergé <neoziro@gmail.com>"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "jsandbox": "https://github.com/eligrey/jsandbox.git",
+    "bootstrap": "~3.3.0"
+  }
+}

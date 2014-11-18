@@ -22,30 +22,6 @@
     </div>
   </div>
 
-  <script src="/bower_components/jquery/dist/jquery.js"></script>
-  <script src="/bower_components/jquery-textcomplete/dist/jquery.textcomplete.js"></script>
-  <script>
-    function createMatcher(regexp, choices) {
-      $('#rule').textcomplete([{
-        match: regexp,
-        search: function (term, callback) {
-          callback($.map(choices, function (word) {
-            return word.indexOf(term) === 0 ? word : null;
-          }));
-        },
-        index: 2,
-        replace: function (word) {
-          return '$1' + word + ' ';
-        }
-      }]).on('textComplete:select', function () {
-        $(this).textcomplete('trigger');
-      });
-    }
-
-    createMatcher(/(my )(\w*)$/, ['rule', 'beautiful']);
-    createMatcher(/(beautiful )(\w*)$/, ['rule']);
-    createMatcher(/(rule )(\w*)$/, ['is']);
-    createMatcher(/(is )(\w*)$/, ['good']);
-  </script>
+  <script src="/bundle.js"></script>
 </body>
 </html>

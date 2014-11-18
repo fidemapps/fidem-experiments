@@ -4,6 +4,10 @@
   "private": true,
   "devDependencies": {
     "browser-sync": "^1.6.3",
-    "gulp": "^3.8.10"
+    "browserify": "^6.3.2",
+    "gulp": "^3.8.10",
+    "pegjs": "^0.8.0",
+    "vinyl-source-stream": "^1.0.0",
+    "watchify": "^2.1.1"
   }
 }

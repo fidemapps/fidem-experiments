@@ -1,0 +1,14 @@
+{
+  "name": "mongo-version",
+  "version": "0.0.0",
+  "private": true,
+  "dependencies": {
+    "bluebird": "^2.9.9",
+    "docker-host": "^3.0.0",
+    "mongoose": "^3.8.23",
+    "mongoose-version": "^0.2.4"
+  },
+  "scripts": {
+    "start": "node index"
+  }
+}

@@ -291,6 +291,17 @@ var app = {
     app.path.getPath().push(latlng);
     app.previousLocation = location;
   },
+  onPause: function() {
+    console.log('[js] onPause');
+    app.stopWatchingForegroundPosition();
+  },
+  /**
+   * Once in foreground, re-engage foreground geolocation watch with standard Cordova GeoLocation api
+   */
+  onResume: function() {
+    console.log('[js] onResume');
+    app.watchForegroundPosition();
+  },
 
   // Update DOM on a Received Event
   receivedEvent: function (id) {
@@ -301,19 +312,33 @@ var app = {
 
 
 angular.module('starter.controllers', ['ionic', 'ngMap'])
-  .controller('HomeCtrl', function ($scope, $filter) {
-
+  .controller('HomeCtrl', function ($scope, $filter,$ionicPlatform) {
     function addInfo(info) {
       var date = $filter('date')(new Date(), 'mediumTime');
+      console.log(info);
       $scope.messages = date + ':' + info + '<br/>' + $scope.messages;
+
     };
 
     $scope.messages = '';
+    $scope.isAggressive = false;
+    $scope.process = 'Start';
 
     ionic.Platform.ready(function () {
       app.onDeviceReady();
       addInfo('Device Ready');
     });
+
+    $ionicPlatform.on('pause', function () {
+      app.onPause();
+      addInfo('On Pause');
+    });
+
+    $ionicPlatform.on('resume', function () {
+      app.onResume();
+      addInfo('On Resume');
+    });
+
 
     $scope.$on('mapInitialized', function (event, map) {
       app.map = map;
@@ -322,16 +347,15 @@ angular.module('starter.controllers', ['ionic', 'ngMap'])
     });
 
     $scope.onClickChangePace = function () {
-
       var bgGeo = window.plugins.backgroundGeoLocation;
       var isAggressive = ENV.toggle('aggressive');
-      if (isAggressive == 'true') {
 
+      if (isAggressive == 'true') {
         bgGeo.changePace(true);
       } else {
-
         bgGeo.changePace(false);
       }
+      $scope.isAggressive = isAggressive;
       addInfo('onClickChangePace - isAggressive : ' + isAggressive);
     };
     $scope.onClickReset = function () {
@@ -350,21 +374,21 @@ angular.module('starter.controllers', ['ionic', 'ngMap'])
       addInfo('onClickReset');
     };
 
-    $scope.onClickToggleEnabled = function () {
+    $scope.toggleEnabled = function () {
       var bgGeo = window.plugins.backgroundGeoLocation,
-
         isEnabled = ENV.toggle('enabled');
-
-
       if (isEnabled == 'true') {
-
         bgGeo.start();
+        $scope.process = 'Stop';
       } else {
         bgGeo.stop();
+        $scope.process = 'Start';
       }
+      addInfo('toggleEnabled - enabled : ' + isEnabled);
     };
 
     $scope.onClickHome = function () {
+      addInfo('onClickHome');
       app.onClickHome();
     };
 

@@ -37,7 +37,6 @@
 
         <map zoom="11"
              center="[-34.397, 150.644]"
-
              disable-default-u-i="true"
              disable-double-click-zoom="true"
              draggable="false"
@@ -49,12 +48,15 @@
              tilt="45"
              map-type-id="TERRAIN">
         </map>
-        <nav id="footer" class="navbar navbar-default navbar-fixed-bottom" role="navigation">
-            <button id="btn-home" class="btn navbar-btn btn-default glyphicon glyphicon-screenshot"></button>
-            <button id="btn-reset" class="btn btn-default glyphicon" ng-click="onClickReset()">Reset</button>
-            <button id="btn-pace" data-id="false" class="btn navbar-btn" ng-click="onClickChangePace()">Aggressive</button>
-            <button id="btn-enabled" class="btn navbar-btn" data-id="true" ng-click="onClickToggleEnabled()">Start</button>
-        </nav>
+
+        <div class="button-bar">
+            <a class="button button-positive" ng-click="onClickHome()">Home</a>
+            <a class="button button-positive" ng-click="onClickReset()">Reset</a>
+            <a class="button button-positive " ng-class="isAggressive ? 'button-assertive' : 'button-positive'" ng-click="onClickChangePace()">Aggressive</a>
+            <a class="button button-positive" ng-click="toggleEnabled()">{{process}}</a>
+        </div>
+
+
         <div class="padding" ng-bind-html="messages">
 
         </div>

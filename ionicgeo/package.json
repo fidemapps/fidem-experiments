@@ -17,7 +17,11 @@
   "cordovaPlugins": [
     "org.apache.cordova.console",
     "org.apache.cordova.device",
-    "com.ionic.keyboard"
+    "com.ionic.keyboard",
+    "cordova-plugin-whitelist",
+    "cordova-plugin-geolocation",
+    "com.transistorsoft.cordova.background-geolocation",
+    "org.apache.cordova.dialogs"
   ],
   "cordovaPlatforms": [
     "android"

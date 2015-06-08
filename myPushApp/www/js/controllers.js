@@ -20,6 +20,7 @@ angular.module('starter.controllers', [])
           $scope.lastNotification = JSON.stringify(notification);
         }
       }).then(function (deviceToken) {
+
         $scope.token = deviceToken;
       });
     };
@@ -30,9 +31,12 @@ angular.module('starter.controllers', [])
 
       var user = $ionicUser.get();
       if (!user.user_id) {
+        alert('Will generate one');
         // Set your user_id here, or generate a random one
         user.user_id = $ionicUser.generateGUID()
       }
+
+      alert(user.user_id);
 
       angular.extend(user, {
         name: 'Test User',

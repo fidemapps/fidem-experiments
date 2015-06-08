@@ -47,490 +47,469 @@ import de.appplant.cordova.plugin.notification.*;
  */
 public class LocalNotification extends CordovaPlugin {
 
-    // Reference to the web view for static access
-    private static CordovaWebView webView = null;
-
-    // Indicates if the device is ready (to receive events)
-    private static Boolean deviceready = false;
-
-    // To inform the user about the state of the app in callbacks
-    protected static Boolean isInBackground = true;
-
-    // Queues all events before deviceready
-    private static ArrayList<String> eventQueue = new ArrayList<String>();
-
-    /**
-     * Called after plugin construction and fields have been initialized.
-     * Prefer to use pluginInitialize instead since there is no value in
-     * having parameters on the initialize() function.
-     *
-     * pluginInitialize is not available for cordova 3.0-3.5 !
-     */
-    @Override
-    public void initialize (CordovaInterface cordova, CordovaWebView webView) {
-        LocalNotification.webView = super.webView;
-    }
-
-    /**
-     * Called when the system is about to start resuming a previous activity.
-     *
-     * @param multitasking
-     *      Flag indicating if multitasking is turned on for app
-     */
-    @Override
-    public void onPause(boolean multitasking) {
-        super.onPause(multitasking);
-        isInBackground = true;
-    }
-
-    /**
-     * Called when the activity will start interacting with the user.
-     *
-     * @param multitasking
-     *      Flag indicating if multitasking is turned on for app
-     */
-    @Override
-    public void onResume(boolean multitasking) {
-        super.onResume(multitasking);
-        isInBackground = false;
-        deviceready();
-    }
-
-    /**
-     * The final call you receive before your activity is destroyed.
-     */
-    @Override
-    public void onDestroy() {
-        deviceready = false;
-        isInBackground = true;
-    }
-
-    /**
-     * Executes the request.
-     *
-     * This method is called from the WebView thread. To do a non-trivial
-     * amount of work, use:
-     *      cordova.getThreadPool().execute(runnable);
-     *
-     * To run on the UI thread, use:
-     *     cordova.getActivity().runOnUiThread(runnable);
-     *
-     * @param action
-     *      The action to execute.
-     * @param args
-     *      The exec() arguments in JSON form.
-     * @param command
-     *      The callback context used when calling back into JavaScript.
-     * @return
-     *      Whether the action was valid.
-     */
-    @Override
-    public boolean execute (final String action, final JSONArray args,
-                            final CallbackContext command) throws JSONException {
-
-        Notification.setDefaultTriggerReceiver(TriggerReceiver.class);
-
-        cordova.getThreadPool().execute(new Runnable() {
-            public void run() {
-                if (action.equals("schedule")) {
-                    schedule(args);
-                    command.success();
-                }
-                else if (action.equals("update")) {
-                    update(args);
-                    command.success();
-                }
-                else if (action.equals("cancel")) {
-                    cancel(args);
-                    command.success();
-                }
-                else if (action.equals("cancelAll")) {
-                    cancelAll();
-                    command.success();
-                }
-                else if (action.equals("clear")) {
-                    clear(args);
-                    command.success();
-                }
-                else if (action.equals("clearAll")) {
-                    clearAll();
-                    command.success();
-                }
-                else if (action.equals("isPresent")) {
-                    isPresent(args.optInt(0), command);
-                }
-                else if (action.equals("isScheduled")) {
-                    isScheduled(args.optInt(0), command);
-                }
-                else if (action.equals("isTriggered")) {
-                    isTriggered(args.optInt(0), command);
-                }
-                else if (action.equals("getAllIds")) {
-                    getAllIds(command);
-                }
-                else if (action.equals("getScheduledIds")) {
-                    getScheduledIds(command);
-                }
-                else if (action.equals("getTriggeredIds")) {
-                    getTriggeredIds(command);
-                }
-                else if (action.equals("getAll")) {
-                    getAll(args, command);
-                }
-                else if (action.equals("getScheduled")) {
-                    getScheduled(args, command);
-                }
-                else if (action.equals("getTriggered")) {
-                    getTriggered(args, command);
-                }
-                else if (action.equals("deviceready")) {
-                    deviceready();
-                }
-            }
-        });
-
-        return true;
-    }
-
-    /**
-     * Schedule multiple local notifications.
-     *
-     * @param notifications
-     *      Properties for each local notification
-     */
-    private void schedule (JSONArray notifications) {
-        for (int i = 0; i < notifications.length(); i++) {
-            JSONObject options = notifications.optJSONObject(i);
-
-            Notification notification =
-                    getNotificationMgr().schedule(options, TriggerReceiver.class);
-
-            fireEvent("schedule", notification);
-        }
-    }
-
-    /**
-     * Update multiple local notifications.
-     *
-     * @param updates
-     *      Notification properties including their IDs
-     */
-    private void update (JSONArray updates) {
-        for (int i = 0; i < updates.length(); i++) {
-            JSONObject update = updates.optJSONObject(i);
-            int id = update.optInt("id", 0);
-
-            Notification notification =
-                    getNotificationMgr().update(id, update, TriggerReceiver.class);
-
-            fireEvent("update", notification);
-        }
-    }
-
-    /**
-     * Cancel multiple local notifications.
-     *
-     * @param ids
-     *      Set of local notification IDs
-     */
-    private void cancel (JSONArray ids) {
-        for (int i = 0; i < ids.length(); i++) {
-            int id = ids.optInt(i, 0);
-
-            Notification notification =
-                    getNotificationMgr().cancel(id);
-
-            fireEvent("cancel", notification);
-        }
-    }
-
-    /**
-     * Cancel all scheduled notifications.
-     */
-    private void cancelAll() {
-        getNotificationMgr().cancelAll();
-        fireEvent("cancelall");
-    }
-
-    /**
-     * Clear multiple local notifications without canceling them.
-     *
-     * @param ids
-     *      Set of local notification IDs
-     */
-    private void clear(JSONArray ids){
-        for (int i = 0; i < ids.length(); i++) {
-            int id = ids.optInt(i, 0);
-
-            Notification notification =
-                    getNotificationMgr().clear(id);
-
-            fireEvent("clear", notification);
-        }
-    }
-
-    /**
-     * Clear all triggered notifications without canceling them.
-     */
-    private void clearAll() {
-        getNotificationMgr().clearAll();
-        fireEvent("clearall");
-    }
-
-    /**
-     * If a notification with an ID is present.
-     *
-     * @param id
-     *      Notification ID
-     * @param command
-     *      The callback context used when calling back into JavaScript.
-     */
-    private void isPresent (int id, CallbackContext command) {
-        boolean exist = getNotificationMgr().exist(id);
-
-        PluginResult result = new PluginResult(
-                PluginResult.Status.OK, exist);
-
-        command.sendPluginResult(result);
-    }
-
-    /**
-     * If a notification with an ID is scheduled.
-     *
-     * @param id
-     *      Notification ID
-     * @param command
-     *      The callback context used when calling back into JavaScript.
-     */
-    private void isScheduled (int id, CallbackContext command) {
-        boolean exist = getNotificationMgr().exist(
-                id, Notification.Type.SCHEDULED);
-
-        PluginResult result = new PluginResult(
-                PluginResult.Status.OK, exist);
-
-        command.sendPluginResult(result);
-    }
-
-    /**
-     * If a notification with an ID is triggered.
-     *
-     * @param id
-     *      Notification ID
-     * @param command
-     *      The callback context used when calling back into JavaScript.
-     */
-    private void isTriggered (int id, CallbackContext command) {
-        boolean exist = getNotificationMgr().exist(
-                id, Notification.Type.TRIGGERED);
-
-        PluginResult result = new PluginResult(
-                PluginResult.Status.OK, exist);
-
-        command.sendPluginResult(result);
-    }
-
-    /**
-     * Set of IDs from all existent notifications.
-     *
-     * @param command
-     *      The callback context used when calling back into JavaScript.
-     */
-    private void getAllIds (CallbackContext command) {
-        List<Integer> ids = getNotificationMgr().getIds();
-
-        command.success(new JSONArray(ids));
-    }
-
-    /**
-     * Set of IDs from all scheduled notifications.
-     *
-     * @param command
-     *      The callback context used when calling back into JavaScript.
-     */
-    private void getScheduledIds (CallbackContext command) {
-        List<Integer> ids = getNotificationMgr().getIdsByType(
-                Notification.Type.SCHEDULED);
-
-        command.success(new JSONArray(ids));
-    }
-
-    /**
-     * Set of IDs from all triggered notifications.
-     *
-     * @param command
-     *      The callback context used when calling back into JavaScript.
-     */
-    private void getTriggeredIds (CallbackContext command) {
-        List<Integer> ids = getNotificationMgr().getIdsByType(
-                Notification.Type.TRIGGERED);
-
-        command.success(new JSONArray(ids));
-    }
-
-    /**
-     * Set of options from local notification.
-     *
-     * @param ids
-     *      Set of local notification IDs
-     * @param command
-     *      The callback context used when calling back into JavaScript.
-     */
-    private void getAll (JSONArray ids, CallbackContext command) {
-        List<JSONObject> options;
-
-        if (ids.length() == 0) {
-            options = getNotificationMgr().getOptions();
-        } else {
-            options = getNotificationMgr().getOptionsById(toList(ids));
-        }
-
-        command.success(new JSONArray(options));
-    }
-
-    /**
-     * Set of options from scheduled notifications.
-     *
-     * @param ids
-     *      Set of local notification IDs
-     * @param command
-     *      The callback context used when calling back into JavaScript.
-     */
-    private void getScheduled (JSONArray ids, CallbackContext command) {
-        List<JSONObject> options;
-
-        if (ids.length() == 0) {
-            options = getNotificationMgr().getOptionsByType(Notification.Type.SCHEDULED);
-        } else {
-            options = getNotificationMgr().getOptionsBy(
-                    Notification.Type.SCHEDULED, toList(ids));
-        }
-
-        command.success(new JSONArray(options));
-    }
-
-    /**
-     * Set of options from triggered notifications.
-     *
-     * @param ids
-     *      Set of local notification IDs
-     * @param command
-     *      The callback context used when calling back into JavaScript.
-     */
-    private void getTriggered (JSONArray ids, CallbackContext command) {
-        List<JSONObject> options;
-
-        if (ids.length() == 0) {
-            options = getNotificationMgr().getOptionsByType(Notification.Type.TRIGGERED);
-        } else {
-            options = getNotificationMgr().getOptionsBy(
-                    Notification.Type.TRIGGERED, toList(ids));
-        }
-
-        command.success(new JSONArray(options));
-    }
-
-    /**
-     * Call all pending callbacks after the deviceready event has been fired.
-     */
-    private static synchronized void deviceready () {
-        isInBackground = false;
-        deviceready = true;
-
-        for (String js : eventQueue) {
-            sendJavascript(js);
-        }
-
-        eventQueue.clear();
-    }
-
-    /**
-     * Fire given event on JS side. Does inform all event listeners.
-     *
-     * @param event
-     *      The event name
-     */
-    private void fireEvent (String event) {
-        fireEvent(event, null);
-    }
-
-    /**
-     * Fire given event on JS side. Does inform all event listeners.
-     *
-     * @param event
-     *      The event name
-     * @param notification
-     *      Optional local notification to pass the id and properties.
-     */
-    static void fireEvent (String event, Notification notification) {
-        String state = getApplicationState();
-        String params = "\"" + state + "\"";
-
-        if (notification != null) {
-            params = notification.toString() + "," + params;
-        }
-
-        String js = "cordova.plugins.notification.local.fireEvent(" +
-                "\"" + event + "\"," + params + ")";
-
-        sendJavascript(js);
-    }
-
-    /**
-     * Use this instead of deprecated sendJavascript
-     *
-     * @param js
-     *       JS code snippet as string
-     */
-    private static synchronized void sendJavascript(final String js) {
-
-        if (!deviceready) {
-            eventQueue.add(js);
-            return;
-        }
-
-        webView.getView().post(new Runnable(){
-          public void run(){
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-              webView.sendJavascript(js);
-            } else {
-              webView.loadUrl("javascript:" + js);
-            }
-          }
-        });
-    }
-
-    /**
-     * Convert JSON array of integers to List.
-     *
-     * @param ary
-     *      Array of integers
-     */
-    private List<Integer> toList (JSONArray ary) {
-        ArrayList<Integer> list = new ArrayList<Integer>();
-
-        for (int i = 0; i < ary.length(); i++) {
-            list.add(ary.optInt(i));
-        }
-
-        return list;
-    }
-
-    /**
-     * Current application state.
-     *
-     * @return
-     *      "background" or "foreground"
-     */
-    static String getApplicationState () {
-        return isInBackground ? "background" : "foreground";
-    }
-
-    /**
-     * Notification manager instance.
-     */
-    private Manager getNotificationMgr() {
-        return Manager.getInstance(cordova.getActivity());
-    }
+	// Reference to the web view for static access
+	private static CordovaWebView webView = null;
+
+	// Indicates if the device is ready (to receive events)
+	private static Boolean deviceready = false;
+
+	// To inform the user about the state of the app in callbacks
+	protected static Boolean isInBackground = true;
+
+	// Queues all events before deviceready
+	private static ArrayList<String> eventQueue = new ArrayList<String>();
+
+	/**
+	 * Called after plugin construction and fields have been initialized. Prefer
+	 * to use pluginInitialize instead since there is no value in having
+	 * parameters on the initialize() function.
+	 *
+	 * pluginInitialize is not available for cordova 3.0-3.5 !
+	 */
+	@Override
+	public void initialize(CordovaInterface cordova, CordovaWebView webView) {
+		LocalNotification.webView = super.webView;
+	}
+
+	/**
+	 * Called when the system is about to start resuming a previous activity.
+	 *
+	 * @param multitasking
+	 *            Flag indicating if multitasking is turned on for app
+	 */
+	@Override
+	public void onPause(boolean multitasking) {
+		super.onPause(multitasking);
+		isInBackground = true;
+	}
+
+	/**
+	 * Called when the activity will start interacting with the user.
+	 *
+	 * @param multitasking
+	 *            Flag indicating if multitasking is turned on for app
+	 */
+	@Override
+	public void onResume(boolean multitasking) {
+		super.onResume(multitasking);
+		isInBackground = false;
+		deviceready();
+	}
+
+	/**
+	 * The final call you receive before your activity is destroyed.
+	 */
+	@Override
+	public void onDestroy() {
+		deviceready = false;
+		isInBackground = true;
+	}
+
+	/**
+	 * Executes the request.
+	 *
+	 * This method is called from the WebView thread. To do a non-trivial amount
+	 * of work, use: cordova.getThreadPool().execute(runnable);
+	 *
+	 * To run on the UI thread, use:
+	 * cordova.getActivity().runOnUiThread(runnable);
+	 *
+	 * @param action
+	 *            The action to execute.
+	 * @param args
+	 *            The exec() arguments in JSON form.
+	 * @param command
+	 *            The callback context used when calling back into JavaScript.
+	 * @return Whether the action was valid.
+	 */
+	@Override
+	public boolean execute(final String action, final JSONArray args,
+			final CallbackContext command) throws JSONException {
+
+		Notification.setDefaultTriggerReceiver(TriggerReceiver.class);
+
+		cordova.getThreadPool().execute(new Runnable() {
+			public void run() {
+				if (action.equals("schedule")) {
+					schedule(args);
+					command.success();
+				} else if (action.equals("update")) {
+					update(args);
+					command.success();
+				} else if (action.equals("cancel")) {
+					cancel(args);
+					command.success();
+				} else if (action.equals("cancelAll")) {
+					cancelAll();
+					command.success();
+				} else if (action.equals("clear")) {
+					clear(args);
+					command.success();
+				} else if (action.equals("clearAll")) {
+					clearAll();
+					command.success();
+				} else if (action.equals("isPresent")) {
+					isPresent(args.optInt(0), command);
+				} else if (action.equals("isScheduled")) {
+					isScheduled(args.optInt(0), command);
+				} else if (action.equals("isTriggered")) {
+					isTriggered(args.optInt(0), command);
+				} else if (action.equals("getAllIds")) {
+					getAllIds(command);
+				} else if (action.equals("getScheduledIds")) {
+					getScheduledIds(command);
+				} else if (action.equals("getTriggeredIds")) {
+					getTriggeredIds(command);
+				} else if (action.equals("getAll")) {
+					getAll(args, command);
+				} else if (action.equals("getScheduled")) {
+					getScheduled(args, command);
+				} else if (action.equals("getTriggered")) {
+					getTriggered(args, command);
+				} else if (action.equals("deviceready")) {
+					deviceready();
+				}
+			}
+		});
+
+		return true;
+	}
+
+	/**
+	 * Schedule multiple local notifications.
+	 *
+	 * @param notifications
+	 *            Properties for each local notification
+	 */
+	private void schedule(JSONArray notifications) {
+		for (int i = 0; i < notifications.length(); i++) {
+			JSONObject options = notifications.optJSONObject(i);
+
+			Notification notification = getNotificationMgr().schedule(options,
+					TriggerReceiver.class);
+
+			fireEvent("schedule", notification);
+		}
+	}
+
+	/**
+	 * Update multiple local notifications.
+	 *
+	 * @param updates
+	 *            Notification properties including their IDs
+	 */
+	private void update(JSONArray updates) {
+		for (int i = 0; i < updates.length(); i++) {
+			JSONObject update = updates.optJSONObject(i);
+			int id = update.optInt("id", 0);
+
+			Notification notification = getNotificationMgr().update(id, update,
+					TriggerReceiver.class);
+
+			fireEvent("update", notification);
+		}
+	}
+
+	/**
+	 * Cancel multiple local notifications.
+	 *
+	 * @param ids
+	 *            Set of local notification IDs
+	 */
+	private void cancel(JSONArray ids) {
+		for (int i = 0; i < ids.length(); i++) {
+			int id = ids.optInt(i, 0);
+
+			Notification notification = getNotificationMgr().cancel(id);
+
+			fireEvent("cancel", notification);
+		}
+	}
+
+	/**
+	 * Cancel all scheduled notifications.
+	 */
+	private void cancelAll() {
+		getNotificationMgr().cancelAll();
+		fireEvent("cancelall");
+	}
+
+	/**
+	 * Clear multiple local notifications without canceling them.
+	 *
+	 * @param ids
+	 *            Set of local notification IDs
+	 */
+	private void clear(JSONArray ids) {
+		for (int i = 0; i < ids.length(); i++) {
+			int id = ids.optInt(i, 0);
+
+			Notification notification = getNotificationMgr().clear(id);
+
+			fireEvent("clear", notification);
+		}
+	}
+
+	/**
+	 * Clear all triggered notifications without canceling them.
+	 */
+	private void clearAll() {
+		getNotificationMgr().clearAll();
+		fireEvent("clearall");
+	}
+
+	/**
+	 * If a notification with an ID is present.
+	 *
+	 * @param id
+	 *            Notification ID
+	 * @param command
+	 *            The callback context used when calling back into JavaScript.
+	 */
+	private void isPresent(int id, CallbackContext command) {
+		boolean exist = getNotificationMgr().exist(id);
+
+		PluginResult result = new PluginResult(PluginResult.Status.OK, exist);
+
+		command.sendPluginResult(result);
+	}
+
+	/**
+	 * If a notification with an ID is scheduled.
+	 *
+	 * @param id
+	 *            Notification ID
+	 * @param command
+	 *            The callback context used when calling back into JavaScript.
+	 */
+	private void isScheduled(int id, CallbackContext command) {
+		boolean exist = getNotificationMgr().exist(id,
+				Notification.Type.SCHEDULED);
+
+		PluginResult result = new PluginResult(PluginResult.Status.OK, exist);
+
+		command.sendPluginResult(result);
+	}
+
+	/**
+	 * If a notification with an ID is triggered.
+	 *
+	 * @param id
+	 *            Notification ID
+	 * @param command
+	 *            The callback context used when calling back into JavaScript.
+	 */
+	private void isTriggered(int id, CallbackContext command) {
+		boolean exist = getNotificationMgr().exist(id,
+				Notification.Type.TRIGGERED);
+
+		PluginResult result = new PluginResult(PluginResult.Status.OK, exist);
+
+		command.sendPluginResult(result);
+	}
+
+	/**
+	 * Set of IDs from all existent notifications.
+	 *
+	 * @param command
+	 *            The callback context used when calling back into JavaScript.
+	 */
+	private void getAllIds(CallbackContext command) {
+		List<Integer> ids = getNotificationMgr().getIds();
+
+		command.success(new JSONArray(ids));
+	}
+
+	/**
+	 * Set of IDs from all scheduled notifications.
+	 *
+	 * @param command
+	 *            The callback context used when calling back into JavaScript.
+	 */
+	private void getScheduledIds(CallbackContext command) {
+		List<Integer> ids = getNotificationMgr().getIdsByType(
+				Notification.Type.SCHEDULED);
+
+		command.success(new JSONArray(ids));
+	}
+
+	/**
+	 * Set of IDs from all triggered notifications.
+	 *
+	 * @param command
+	 *            The callback context used when calling back into JavaScript.
+	 */
+	private void getTriggeredIds(CallbackContext command) {
+		List<Integer> ids = getNotificationMgr().getIdsByType(
+				Notification.Type.TRIGGERED);
+
+		command.success(new JSONArray(ids));
+	}
+
+	/**
+	 * Set of options from local notification.
+	 *
+	 * @param ids
+	 *            Set of local notification IDs
+	 * @param command
+	 *            The callback context used when calling back into JavaScript.
+	 */
+	private void getAll(JSONArray ids, CallbackContext command) {
+		List<JSONObject> options;
+
+		if (ids.length() == 0) {
+			options = getNotificationMgr().getOptions();
+		} else {
+			options = getNotificationMgr().getOptionsById(toList(ids));
+		}
+
+		command.success(new JSONArray(options));
+	}
+
+	/**
+	 * Set of options from scheduled notifications.
+	 *
+	 * @param ids
+	 *            Set of local notification IDs
+	 * @param command
+	 *            The callback context used when calling back into JavaScript.
+	 */
+	private void getScheduled(JSONArray ids, CallbackContext command) {
+		List<JSONObject> options;
+
+		if (ids.length() == 0) {
+			options = getNotificationMgr().getOptionsByType(
+					Notification.Type.SCHEDULED);
+		} else {
+			options = getNotificationMgr().getOptionsBy(
+					Notification.Type.SCHEDULED, toList(ids));
+		}
+
+		command.success(new JSONArray(options));
+	}
+
+	/**
+	 * Set of options from triggered notifications.
+	 *
+	 * @param ids
+	 *            Set of local notification IDs
+	 * @param command
+	 *            The callback context used when calling back into JavaScript.
+	 */
+	private void getTriggered(JSONArray ids, CallbackContext command) {
+		List<JSONObject> options;
+
+		if (ids.length() == 0) {
+			options = getNotificationMgr().getOptionsByType(
+					Notification.Type.TRIGGERED);
+		} else {
+			options = getNotificationMgr().getOptionsBy(
+					Notification.Type.TRIGGERED, toList(ids));
+		}
+
+		command.success(new JSONArray(options));
+	}
+
+	/**
+	 * Call all pending callbacks after the deviceready event has been fired.
+	 */
+	private static synchronized void deviceready() {
+		isInBackground = false;
+		deviceready = true;
+
+		for (String js : eventQueue) {
+			sendJavascript(js);
+		}
+
+		eventQueue.clear();
+	}
+
+	/**
+	 * Fire given event on JS side. Does inform all event listeners.
+	 *
+	 * @param event
+	 *            The event name
+	 */
+	private void fireEvent(String event) {
+		fireEvent(event, null);
+	}
+
+	/**
+	 * Fire given event on JS side. Does inform all event listeners.
+	 *
+	 * @param event
+	 *            The event name
+	 * @param notification
+	 *            Optional local notification to pass the id and properties.
+	 */
+	static void fireEvent(String event, Notification notification) {
+		String state = getApplicationState();
+		String params = "\"" + state + "\"";
+
+		if (notification != null) {
+			params = notification.toString() + "," + params;
+		}
+
+		String js = "cordova.plugins.notification.local.fireEvent(" + "\""
+				+ event + "\"," + params + ")";
+
+		sendJavascript(js);
+	}
+
+	/**
+	 * Use this instead of deprecated sendJavascript
+	 *
+	 * @param js
+	 *            JS code snippet as string
+	 */
+	private static synchronized void sendJavascript(final String js) {
+
+		if (!deviceready) {
+			eventQueue.add(js);
+			return;
+		}
+
+		webView.getView().post(new Runnable() {
+			public void run() {
+				if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+					webView.sendJavascript(js);
+				} else {
+					webView.loadUrl("javascript:" + js);
+				}
+			}
+		});
+	}
+
+	/**
+	 * Convert JSON array of integers to List.
+	 *
+	 * @param ary
+	 *            Array of integers
+	 */
+	private List<Integer> toList(JSONArray ary) {
+		ArrayList<Integer> list = new ArrayList<Integer>();
+
+		for (int i = 0; i < ary.length(); i++) {
+			list.add(ary.optInt(i));
+		}
+
+		return list;
+	}
+
+	/**
+	 * Current application state.
+	 *
+	 * @return "background" or "foreground"
+	 */
+	static String getApplicationState() {
+		return isInBackground ? "background" : "foreground";
+	}
+
+	/**
+	 * Notification manager instance.
+	 */
+	private Manager getNotificationMgr() {
+		return Manager.getInstance(cordova.getActivity());
+	}
 
 }

@@ -1,5 +1,6 @@
-angular.module('starter.controllers', ['ionic', 'ngMap', 'starter.services'])
-  .controller('HomeCtrl', function ($rootScope, $scope, fdGeo, $filter,$ionicPlatform) {
+angular.module('starter.controllers', ['ionic', 'starter.services'])
+
+  .controller('MapCtrl', function ($rootScope, $scope, fdGeo, $filter, $ionicPlatform) {
     function addInfo(info) {
       var date = $filter('date')(new Date(), 'mediumTime');
       console.log(info);
@@ -22,13 +23,6 @@ angular.module('starter.controllers', ['ionic', 'ngMap', 'starter.services'])
     $ionicPlatform.on('resume', function () {
       fdGeo.onResume();
       addInfo('On Resume');
-    });
-
-
-    $scope.$on('mapInitialized', function (event, map) {
-      fdGeo.setMap(map);
-      // Add custom LongPress event to google map so we can add Geofences with longpress event!
-      new LongPress(fdGeo.getMap(), 500);
     });
 
     $scope.onClickChangePace = function () {
@@ -67,7 +61,13 @@ angular.module('starter.controllers', ['ionic', 'ngMap', 'starter.services'])
     $rootScope.$on('fdGeo:message', function (event, data) {
      addInfo(data);
     });
-
-
   }
-);
+).controller('SettingsCtrl', function ($rootScope, $scope, fdGeo) {
+    $scope.settings = fdGeo.getSettings();
+    console.log($scope.settings);
+    $scope.update = function() {
+      fdGeo.updateSettings($scope.settings);
+    };
+
+  });
+

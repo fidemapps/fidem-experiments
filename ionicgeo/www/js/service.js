@@ -19,24 +19,37 @@ var ENV = (function () {
     }
   }
 })();
-angular.module('starter.services', ['ionic', 'ngMap'])
-  .service('fdGeo', function ($rootScope) {
+angular.module('starter.services', ['ionic'])
+  .service('fdGeo', function ($rootScope, $http) {
 
     var service = this;
     service.currentLocation = null;
     service.map = null;
+    service.withMap = false;
+
     service.currentLocationMarker = undefined;
     service.path = undefined;
     service.aggressiveEnabled = false;
     service.locations = [];
     service.geofence = undefined;
 
+    //
+    service.settings = {
+      debug: true,
+      url: 'http://requestb.in/yyszziyy',
+      desiredAccuracy: 0,
+      stationaryRadius: 50,
+      distanceFilter: 25,
+      locationUpdateInterval: 5000,
+      minimumActivityRecognitionConfidence: 80,
+      fastestLocationUpdateInterval: 5000,
+      activityRecognitionInterval: 10000
+    };
 
     service.deviceReady = function () {
       service.receivedEvent('Device Ready');
       service.configureBackgroundGeoLocation();
       service.watchForegroundPosition();
-
     };
 
     service.receivedEvent = function (eventCode) {
@@ -52,8 +65,9 @@ angular.module('starter.services', ['ionic', 'ngMap'])
        * This would be your own callback for Ajax-requests after POSTing background geolocation to your server.
        */
       var yourAjaxCallback = function (response) {
-        // Very important to call #finish -- it signals to the native plugin that it can destroy the background thread, which your callbackFn is running in.
-        // IF YOU DON'T, THE OS CAN KILL YOUR APP FOR RUNNING TOO LONG IN THE BACKGROUND
+        $rootScope.$broadcast('fdGeo:message', 'fdGeo : AjaxCallback: ' + response);
+
+
         bgGeo.finish();
       };
 
@@ -62,6 +76,14 @@ angular.module('starter.services', ['ionic', 'ngMap'])
        */
       var callbackFn = function (location) {
         $rootScope.$broadcast('fdGeo:message', '[js] BackgroundGeoLocation callback:  ' + JSON.stringify(location));
+
+        $http.post(service.settings.url, {src:'AjaxCallback', location:location}).
+          success(function(data, status, headers, config) {
+            $rootScope.$broadcast('fdGeo:message', 'fdGeo : Success AjaxCallback: ' + data);
+          }).
+          error(function(data, status, headers, config) {
+            $rootScope.$broadcast('fdGeo:message', 'fdGeo : Error AjaxCallback: ' + data);
+          });
 
         // Update our current-position marker.
         service.setCurrentLocation(location);
@@ -85,32 +107,19 @@ angular.module('starter.services', ['ionic', 'ngMap'])
         // Center ourself on map
         service.goHome();
 
-        if (!service.stationaryRadius) {
-          service.stationaryRadius = new google.maps.Circle({
-            fillColor: '#cc0000',
-            fillOpacity: 0.4,
-            strokeOpacity: 0,
-            map: service.map
-          });
-        }
-        var radius = 50;
-        var center = new google.maps.LatLng(coords.latitude, coords.longitude);
-        service.stationaryRadius.setRadius(radius);
-        service.stationaryRadius.setCenter(center);
-
       });
 
       // BackgroundGeoLocation is highly configurable.
       bgGeo.configure(callbackFn, failureFn, {
-        debug: true, // <-- enable this hear sounds for background-geolocation life-cycle.
-        desiredAccuracy: 0,
-        stationaryRadius: 50,
-        distanceFilter: 25,
+        debug: service.settings.debug, // <-- enable this hear sounds for background-geolocation life-cycle.
+        desiredAccuracy: service.settings.desiredAccuracy,
+        stationaryRadius: service.settings.stationaryRadius,
+        distanceFilter: service.settings.distanceFilter,
         disableElasticity: false, // <-- [iOS] Default is 'false'.  Set true to disable speed-based distanceFilter elasticity
-        locationUpdateInterval: 5000,
-        minimumActivityRecognitionConfidence: 80,   // 0-100%.  Minimum activity-confidence for a state-change
-        fastestLocationUpdateInterval: 5000,
-        activityRecognitionInterval: 10000,
+        locationUpdateInterval: service.settings.locationUpdateInterval,
+        minimumActivityRecognitionConfidence: service.settings.minimumActivityRecognitionConfidence,   // 0-100%.  Minimum activity-confidence for a state-change
+        fastestLocationUpdateInterval: service.settings.fastestLocationUpdateInterval,
+        activityRecognitionInterval: service.settings.activityRecognitionInterval,
         stopTimeout: 0,
         forceReload: true,      // <-- [Android] If the user closes the app **while location-tracking is started** , reboot app (WARNING: possibly distruptive to user)
         stopOnTerminate: false, // <-- [Android] Allow the background-service to run headless when user closes the app.
@@ -119,7 +128,7 @@ angular.module('starter.services', ['ionic', 'ngMap'])
         /**
          * HTTP Feature:  set an url to allow the native background service to POST locations to your server
          */
-        url: 'http://posttestserver.com/post.php?dir=cordova-background-geolocation',
+        url: service.settings.url + '?dir=cordova-background-geolocation',
         batchSync: false,       // <-- [Default: false] Set true to sync locations to server in a single HTTP request.
         autoSync: true,         // <-- [Default: true] Set true to sync each location to server as it arrives.
         maxDaysToPersist: 1,    // <-- Maximum days to persist a location in plugin's SQLite database when HTTP fails
@@ -132,31 +141,9 @@ angular.module('starter.services', ['ionic', 'ngMap'])
       });
 
       bgGeo.onGeofence(function (identifier) {
-        alert('Enter Geofence: ' + identifier);
-        console.log('[js] Geofence ENTER: ', identifier);
+        $rootScope.$broadcast('[js] Geofence ENTER: ', identifier);
       });
 
-      // Add longpress event for adding GeoFence of hard-coded radius 200m.
-      google.maps.event.addListener(service.map, 'longpress', function (e) {
-        if (service.geofence) {
-          service.geofence.setMap(null);
-        }
-        bgGeo.addGeofence({
-          identifier: 'MyGeofence',
-          radius: 200,
-          latitude: e.latLng.lat(),
-          longitude: e.latLng.lng()
-        }, function () {
-          service.geofence = new google.maps.Circle({
-            fillColor: '#00cc00',
-            fillOpacity: 0.4,
-            strokeOpacity: 0,
-            radius: 200,
-            center: e.latLng,
-            map: service.map
-          });
-        })
-      });
 
       // Turn ON the background-geolocation system.  The user will be tracked whenever they suspend the app.
       var settings = ENV.settings;
@@ -172,24 +159,17 @@ angular.module('starter.services', ['ionic', 'ngMap'])
 
     service.goHome = function () {
       var location = service.currentLocation;
-      $rootScope.$broadcast('fdGeo:message', 'goHome - Location: ' +    JSON.stringify(location));
+      $rootScope.$broadcast('fdGeo:message', 'goHome - Location: ' + JSON.stringify(location));
       if (!location) {
         // No location recorded yet; bail out.
         return;
       }
-      var map = service.map,
-        coords = location.coords,
-        ll = new google.maps.LatLng(coords.latitude, coords.longitude),
-        zoom = map.getZoom();
 
-      map.setCenter(ll);
-
-      if (zoom < 15) {
-        map.setZoom(15);
-      }
     };
+
     service.setMap = function (map) {
       service.map = map;
+      service.withMap = true;
     };
     service.getMap = function () {
       return service.map;
@@ -200,62 +180,9 @@ angular.module('starter.services', ['ionic', 'ngMap'])
       service.currentLocation = location;
 
       var coords = location.coords;
-      $rootScope.$broadcast('fdGeo:message', 'setCurrentLocation - coords: ' +   JSON.stringify(coords));
+      $rootScope.$broadcast('fdGeo:message', 'setCurrentLocation - coords: ' + JSON.stringify(coords));
 
-      if (!service.currentLocationMarker) {
-        service.currentLocationMarker = new google.maps.Marker({
-          map: service.map,
-          icon: {
-            path: google.maps.SymbolPath.CIRCLE,
-            scale: 3,
-            fillColor: 'blue',
-            strokeColor: 'blue',
-            strokeWeight: 5
-          }
-        });
-        service.locationAccuracyMarker = new google.maps.Circle({
-          fillColor: '#3366cc',
-          fillOpacity: 0.4,
-          strokeOpacity: 0,
-          map: service.map
-        });
-        service.goHome();
-      }
-      if (!service.path) {
-        service.path = new google.maps.Polyline({
-          map: service.map,
-          strokeColor: '#3366cc',
-          fillOpacity: 0.4
-        });
-      }
-      var latlng = new google.maps.LatLng(coords.latitude, coords.longitude);
-
-
-      if (service.previousLocation) {
-        var prevLocation = service.previousLocation;
-        // Drop a breadcrumb of where we've been.
-        service.locations.push(new google.maps.Marker({
-          icon: {
-            path: google.maps.SymbolPath.CIRCLE,
-            scale: 3,
-            fillColor: 'green',
-            strokeColor: 'green',
-            strokeWeight: 5
-          },
-          map: service.map,
-          position: new google.maps.LatLng(prevLocation.coords.latitude, prevLocation.coords.longitude)
-        }));
-      }
-
-      // Update our current position marker and accuracy bubble.
-      service.currentLocationMarker.setPosition(latlng);
-      service.locationAccuracyMarker.setCenter(latlng);
-      service.locationAccuracyMarker.setRadius(location.coords.accuracy);
-
-      // Add breadcrumb to current Polyline path.
-      service.path.getPath().push(latlng);
-      service.previousLocation = location;
-    }
+    };
 
 
     /**
@@ -281,18 +208,18 @@ angular.module('starter.services', ['ionic', 'ngMap'])
 
 
     service.onPause = function () {
-      console.log('[js] onPause');
+      $rootScope.$broadcast('[js] onPause');
       service.stopWatchingForegroundPosition();
     };
     /**
      * Once in foreground, re-engage foreground geolocation watch with standard Cordova GeoLocation api
      */
     service.onResume = function () {
-      console.log('[js] onResume');
+      $rootScope.$broadcast('[js] onResume');
       service.watchForegroundPosition();
     }
 
-    service.resetClicked = function() {
+    service.resetClicked = function () {
       // Clear prev location markers.
       var locations = service.locations;
       $rootScope.$broadcast('fdGeo:message', 'resetClicked - Locations: ' + locations);
@@ -304,8 +231,16 @@ angular.module('starter.services', ['ionic', 'ngMap'])
       service.locations = [];
 
       // Clear Polyline.
-      if(service.path) app.path.setMap(null);
+      if (service.path) app.path.setMap(null);
       service.path = undefined;
-    }
+    };
 
-  });
+
+    service.getSettings = function () {
+      return service.settings;
+    };
+    service.updateSettings = function (settings) {
+      service.settings = settings;
+    }
+  })
+;

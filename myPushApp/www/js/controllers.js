@@ -4,7 +4,7 @@ angular.module('starter.controllers', [])
     $rootScope.$on('$cordovaPush:tokenReceived', function (event, data) {
       console.log('Got token', data.token, data.platform);
       $scope.token = data.token;
-
+      alert("Got token:" + data.token);
     });
     //Basic registration
     $scope.pushRegister = function () {
@@ -20,7 +20,7 @@ angular.module('starter.controllers', [])
           $scope.lastNotification = JSON.stringify(notification);
         }
       }).then(function (deviceToken) {
-
+        alert("Register:" + deviceToken);
         $scope.token = deviceToken;
       });
     };

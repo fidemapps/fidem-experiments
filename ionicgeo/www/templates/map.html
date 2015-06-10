@@ -1,0 +1,22 @@
+<!--
+  This template loads for the 'tab.friend-detail' state (app.js)
+  'friend' is a $scope variable created in the FriendsCtrl controller (controllers.js)
+  The FriendsCtrl pulls data from the Friends service (service.js)
+  The Friends service returns an array of friend data
+-->
+<ion-view view-title="Logs">
+    <ion-content class="padding">
+
+        <div class="button-bar">
+            <a class="button button-positive" ng-click="onClickHome()">Home</a>
+            <a class="button button-positive" ng-click="onClickReset()">Reset</a>
+            <a class="button button-positive " ng-class="isAggressive ? 'button-assertive' : 'button-positive'" ng-click="onClickChangePace()">Aggressive</a>
+            <a class="button button-positive" ng-click="toggleEnabled()">{{process}}</a>
+        </div>
+
+
+        <div class="padding" ng-bind-html="messages">
+
+        </div>
+    </ion-content>
+</ion-view>

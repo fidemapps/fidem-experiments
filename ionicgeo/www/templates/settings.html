@@ -1,0 +1,51 @@
+<!--
+  This template loads for the 'tab.friend-detail' state (app.js)
+  'friend' is a $scope variable created in the FriendsCtrl controller (controllers.js)
+  The FriendsCtrl pulls data from the Friends service (service.js)
+  The Friends service returns an array of friend data
+-->
+<ion-view view-title="Settings">
+    <ion-content class="padding">
+        <form name="settingsForm" novalidate="" ng-submit="update(settingsForm)">
+            <div class="list">
+                <ion-radio ng-model="settings.debug" ng-value="true" >Debug</ion-radio>
+                <label class="item item-input item-stacked-label">
+                    <span class="input-label">Url</span>
+                    <input type="text" ng-model="settings.url">
+                </label>
+                <label class="item item-input item-stacked-label">
+                    <span class="input-label">desiredAccuracy</span>
+                    <input type="text" ng-model="settings.desiredAccuracy">
+                </label>
+                <label class="item item-input item-stacked-label">
+                    <span class="input-label">stationaryRadius</span>
+                    <input type="text" ng-model="settings.stationaryRadius">
+                </label>
+                <label class="item item-input item-stacked-label">
+                    <span class="input-label">distanceFilter</span>
+                    <input type="text" ng-model="settings.distanceFilter">
+                </label>
+                <label class="item item-input item-stacked-label">
+                    <span class="input-label">locationUpdateInterval</span>
+                    <input type="text" ng-model="settings.locationUpdateInterval">
+                </label>
+                <label class="item item-input item-stacked-label">
+                    <span class="input-label">minimumActivityRecognitionConfidence</span>
+                    <input type="text" ng-model="settings.minimumActivityRecognitionConfidence">
+                </label>
+                <label class="item item-input item-stacked-label">
+                    <span class="input-label">fastestLocationUpdateInterval</span>
+                    <input type="text" ng-model="settings.fastestLocationUpdateInterval">
+                </label>
+                <label class="item item-input item-stacked-label">
+                    <span class="input-label">activityRecognitionInterval</span>
+                    <input type="text" ng-model="settings.activityRecognitionInterval">
+                </label>
+            </div>
+            <button class="button button-block button-positive">
+                Update Settings
+            </button>
+        </form>
+
+    </ion-content>
+</ion-view>

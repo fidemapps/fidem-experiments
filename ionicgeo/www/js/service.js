@@ -1,43 +1,15 @@
-var ENV = (function () {
-
-  var localStorage = window.localStorage;
-
-  return {
-    settings: {
-      /**
-       * state-mgmt
-       */
-      enabled: localStorage.getItem('enabled') || 'true',
-      aggressive: localStorage.getItem('aggressive') || 'false'
-    },
-    toggle: function (key) {
-      var value = localStorage.getItem(key)
-      newValue = ((new String(value)) == 'true') ? 'false' : 'true';
-
-      localStorage.setItem(key, newValue);
-      return newValue;
-    }
-  }
-})();
 angular.module('starter.services', ['ionic'])
   .service('fdGeo', function ($rootScope, $http) {
 
     var service = this;
     service.currentLocation = null;
-    service.map = null;
-    service.withMap = false;
+    service.isStarted = false;
+    service.isMoving = false;
 
-    service.currentLocationMarker = undefined;
-    service.path = undefined;
-    service.aggressiveEnabled = false;
-    service.locations = [];
-    service.geofence = undefined;
-
-    //
     service.settings = {
       debug: true,
-      url: 'http://requestb.in/yyszziyy',
-      desiredAccuracy: 0,
+      url: 'http://requestb.in/1gsb3421',
+      desiredAccuracy: 10,
       stationaryRadius: 50,
       distanceFilter: 25,
       locationUpdateInterval: 5000,
@@ -47,27 +19,16 @@ angular.module('starter.services', ['ionic'])
     };
 
     service.deviceReady = function () {
-      service.receivedEvent('Device Ready');
       service.configureBackgroundGeoLocation();
       service.watchForegroundPosition();
     };
 
-    service.receivedEvent = function (eventCode) {
-      $rootScope.$broadcast('fdGeo:message', 'fdGeo : Received Event: ' + eventCode);
-    };
     service.configureBackgroundGeoLocation = function () {
       $rootScope.$broadcast('fdGeo:message', 'configureBackgroundGeoLocation');
       var bgGeo = window.plugins.backgroundGeoLocation;
+      service.displayCurrentLocation();
 
-      service.goHome();
-
-      /**
-       * This would be your own callback for Ajax-requests after POSTing background geolocation to your server.
-       */
       var yourAjaxCallback = function (response) {
-        $rootScope.$broadcast('fdGeo:message', 'fdGeo : AjaxCallback: ' + response);
-
-
         bgGeo.finish();
       };
 
@@ -75,19 +36,18 @@ angular.module('starter.services', ['ionic'])
        * This callback will be executed every time a geolocation is recorded in the background.
        */
       var callbackFn = function (location) {
-        $rootScope.$broadcast('fdGeo:message', '[js] BackgroundGeoLocation callback:  ' + JSON.stringify(location));
-
-        $http.post(service.settings.url, {src:'AjaxCallback', location:location}).
-          success(function(data, status, headers, config) {
-            $rootScope.$broadcast('fdGeo:message', 'fdGeo : Success AjaxCallback: ' + data);
-          }).
-          error(function(data, status, headers, config) {
-            $rootScope.$broadcast('fdGeo:message', 'fdGeo : Error AjaxCallback: ' + data);
-          });
-
         // Update our current-position marker.
         service.setCurrentLocation(location);
 
+        $rootScope.$broadcast('fdGeo:message', '[js-BgGeo] - long :  ' + JSON.stringify(location.coords.longitude));
+
+        $http.post(service.settings.url, {src: 'AjaxCallback', location: location}).
+          success(function (data, status, headers, config) {
+            $rootScope.$broadcast('fdGeo:message', '[js-BgGeo] Success AjaxCallback: ' + data);
+          }).
+          error(function (data, status, headers, config) {
+            $rootScope.$broadcast('fdGeo:message', '[js-BgGeo] Error AjaxCallback: ' + data);
+          });
         // After you Ajax callback is complete, you MUST signal to the native code, which is running a background-thread, that you're done and it can gracefully kill that thread.
         yourAjaxCallback.call(this);
       };
@@ -98,15 +58,8 @@ angular.module('starter.services', ['ionic'])
 
       // Only ios emits this stationary event
       bgGeo.onStationary(function (location) {
-        $rootScope.$broadcast('fdGeo:message', '[js] BackgroundGeoLocation onStationary ' + JSON.stringify(location));
-
+        $rootScope.$broadcast('fdGeo:message', '[js-BgGeo] onStationary ' + JSON.stringify(location.coords.longitude));
         service.setCurrentLocation(location);
-
-        var coords = location.coords;
-
-        // Center ourself on map
-        service.goHome();
-
       });
 
       // BackgroundGeoLocation is highly configurable.
@@ -141,47 +94,70 @@ angular.module('starter.services', ['ionic'])
       });
 
       bgGeo.onGeofence(function (identifier) {
-        $rootScope.$broadcast('[js] Geofence ENTER: ', identifier);
+        $rootScope.$broadcast('fdGeo:message', '[js-BgGeo] Geofence ENTER: ', identifier);
+      });
+    };
+
+    service.forceMoving = function () {
+      if (service.isStarted) {
+        var bgGeo = window.plugins.backgroundGeoLocation;
+        bgGeo.changePace(true, function () {
+          service.isMoving = true;
+          $rootScope.$broadcast('fdGeo:message', '[js-BgGeo] Force Moving');
+        });
+      } else {
+        $rootScope.$broadcast('fdGeo:message', '[js-BgGeo] Service is not started');
+      }
+    };
+
+    service.forceStationary = function () {
+      if (!service.isMoving) {
+        return
+      }
+      if (service.isStarted) {
+        var bgGeo = window.plugins.backgroundGeoLocation;
+        bgGeo.changePace(false, function () {
+          service.isMoving = false;
+          $rootScope.$broadcast('fdGeo:message', '[js-BgGeo] Force Stationary');
+        });
+      } else {
+        $rootScope.$broadcast('fdGeo:message', '[js-BgGeo] Service is not started');
+      }
+    }
+
+    service.stopBG = function () {
+      service.forceStationary();
+      var bgGeo = window.plugins.backgroundGeoLocation;
+      bgGeo.stop(function () {
+        service.isStarted = false;
+        $rootScope.$broadcast('fdGeo:message', '[js-BgGeo] Stopped');
+      }, function (error) {
+        service.isStarted = true;
+        $rootScope.$broadcast('fdGeo:message', '[js-BgGeo] Error on Stopped ' + error);
       });
 
-
-      // Turn ON the background-geolocation system.  The user will be tracked whenever they suspend the app.
-      var settings = ENV.settings;
-
-      if (settings.enabled == 'true') {
-        bgGeo.start();
-
-        if (settings.aggressive == 'true') {
-          bgGeo.changePace(true);
-        }
-      }
+    };
+    service.startBG = function () {
+      var bgGeo = window.plugins.backgroundGeoLocation;
+      bgGeo.start(function () {
+        service.isStarted = true;
+        $rootScope.$broadcast('fdGeo:message', '[js-BgGeo] Started');
+      }, function (error) {
+        service.isStarted = false;
+        $rootScope.$broadcast('fdGeo:message', '[js-BgGeo] Error on Started ' + error);
+      });
     };
 
-    service.goHome = function () {
+    service.displayCurrentLocation = function () {
       var location = service.currentLocation;
-      $rootScope.$broadcast('fdGeo:message', 'goHome - Location: ' + JSON.stringify(location));
-      if (!location) {
-        // No location recorded yet; bail out.
-        return;
+      if (location) {
+        $rootScope.$broadcast('fdGeo:message', 'Current Location: ' + JSON.stringify(location));
       }
-
-    };
-
-    service.setMap = function (map) {
-      service.map = map;
-      service.withMap = true;
-    };
-    service.getMap = function () {
-      return service.map;
     };
 
     service.setCurrentLocation = function (location) {
-      // Set currentLocation @property
       service.currentLocation = location;
-
-      var coords = location.coords;
-      $rootScope.$broadcast('fdGeo:message', 'setCurrentLocation - coords: ' + JSON.stringify(coords));
-
+      service.displayCurrentLocation();
     };
 
 
@@ -189,6 +165,7 @@ angular.module('starter.services', ['ionic'])
      * We use standard cordova-plugin-geolocation to watch position in foreground.
      */
     service.watchForegroundPosition = function () {
+      $rootScope.$broadcast('fdGeo:message', '[js] watchForegroundPosition');
       var fgGeo = window.navigator.geolocation;
       if (service.foregroundWatchId) {
         service.stopWatchingForegroundPosition();
@@ -199,6 +176,7 @@ angular.module('starter.services', ['ionic'])
       });
     };
     service.stopWatchingForegroundPosition = function () {
+      $rootScope.$broadcast('fdGeo:message', '[js] stopWatchingForegroundPosition');
       var fgGeo = window.navigator.geolocation;
       if (service.foregroundWatchId) {
         fgGeo.clearWatch(service.foregroundWatchId);
@@ -208,39 +186,30 @@ angular.module('starter.services', ['ionic'])
 
 
     service.onPause = function () {
-      $rootScope.$broadcast('[js] onPause');
+      $rootScope.$broadcast('fdGeo:message', '[js] onPause');
       service.stopWatchingForegroundPosition();
     };
     /**
      * Once in foreground, re-engage foreground geolocation watch with standard Cordova GeoLocation api
      */
     service.onResume = function () {
-      $rootScope.$broadcast('[js] onResume');
+      $rootScope.$broadcast('fdGeo:message', '[js] onResume');
       service.watchForegroundPosition();
-    }
-
-    service.resetClicked = function () {
-      // Clear prev location markers.
-      var locations = service.locations;
-      $rootScope.$broadcast('fdGeo:message', 'resetClicked - Locations: ' + locations);
-      if (locations) {
-        for (var n = 0, len = locations.length; n < len; n++) {
-          locations[n].setMap(null);
-        }
-      }
-      service.locations = [];
-
-      // Clear Polyline.
-      if (service.path) app.path.setMap(null);
-      service.path = undefined;
     };
-
 
     service.getSettings = function () {
       return service.settings;
     };
     service.updateSettings = function (settings) {
       service.settings = settings;
+    }
+
+    service.moving = function () {
+      return service.isMoving
+    }
+
+    service.started = function () {
+      return service.isStarted;
     }
   })
 ;

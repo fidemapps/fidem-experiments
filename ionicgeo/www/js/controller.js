@@ -1,15 +1,21 @@
 angular.module('starter.controllers', ['ionic', 'starter.services'])
 
   .controller('MapCtrl', function ($rootScope, $scope, fdGeo, $filter, $ionicPlatform) {
+    $scope.messages = '';
+    $scope.isStarted = false;
+    $scope.isMoving = false;
+
     function addInfo(info) {
       var date = $filter('date')(new Date(), 'mediumTime');
       console.log(info);
       $scope.messages = date + ':' + info + '<br/>' + $scope.messages;
     };
 
-    $scope.messages = '';
-    $scope.isAggressive = false;
-    $scope.process = 'Start';
+
+    $rootScope.$on('fdGeo:message', function (event, data) {
+      addInfo(data);
+    });
+
 
     ionic.Platform.ready(function () {
       fdGeo.deviceReady();
@@ -17,55 +23,45 @@ angular.module('starter.controllers', ['ionic', 'starter.services'])
 
     $ionicPlatform.on('pause', function () {
       fdGeo.onPause();
-      addInfo('On Pause');
     });
 
     $ionicPlatform.on('resume', function () {
       fdGeo.onResume();
-      addInfo('On Resume');
     });
 
-    $scope.onClickChangePace = function () {
-      var bgGeo = window.plugins.backgroundGeoLocation;
-      var isAggressive = ENV.toggle('aggressive');
+    $scope.forceMoving = function () {
+        $scope.isMoving = true;
+        fdGeo.forceMoving();
 
-      if (isAggressive == 'true') {
-        bgGeo.changePace(true);
-      } else {
-        bgGeo.changePace(false);
-      }
-      $scope.isAggressive = isAggressive;
-      addInfo('onClickChangePace - isAggressive : ' + isAggressive);
-    };
-    $scope.onClickReset = function () {
-      fdGeo.resetClicked();
     };
 
-    $scope.toggleEnabled = function () {
-      var bgGeo = window.plugins.backgroundGeoLocation,
-        isEnabled = ENV.toggle('enabled');
-      if (isEnabled == 'true') {
-        bgGeo.start();
-        $scope.process = 'Stop';
-      } else {
-        bgGeo.stop();
-        $scope.process = 'Start';
-      }
-      addInfo('toggleEnabled - enabled : ' + isEnabled);
+    $scope.forceStationary = function () {
+      $scope.isMoving = false;
+      fdGeo.forceStationary();
+
     };
 
-    $scope.onClickHome = function () {
-      fdGeo.goHome();
+
+    $scope.startBgGeo = function () {
+      $scope.isStarted = true;
+      fdGeo.startBG();
     };
 
-    $rootScope.$on('fdGeo:message', function (event, data) {
-     addInfo(data);
-    });
+    $scope.stopBgGeo= function () {
+      $scope.isMoving = false;
+      $scope.isStarted = false;
+      fdGeo.stopBG();
+    };
+
+    $scope.onClickCurrentLocation = function () {
+      fdGeo.displayCurrentLocation();
+    };
+
   }
 ).controller('SettingsCtrl', function ($rootScope, $scope, fdGeo) {
     $scope.settings = fdGeo.getSettings();
     console.log($scope.settings);
-    $scope.update = function() {
+    $scope.update = function () {
       fdGeo.updateSettings($scope.settings);
     };
 

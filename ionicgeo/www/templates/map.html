@@ -8,10 +8,15 @@
     <ion-content class="padding">
 
         <div class="button-bar">
-            <a class="button button-positive" ng-click="onClickHome()">Home</a>
-            <a class="button button-positive" ng-click="onClickReset()">Reset</a>
-            <a class="button button-positive " ng-class="isAggressive ? 'button-assertive' : 'button-positive'" ng-click="onClickChangePace()">Aggressive</a>
-            <a class="button button-positive" ng-click="toggleEnabled()">{{process}}</a>
+            <a class="button button-positive" ng-click="onClickCurrentLocation()">Location</a>
+
+            <a class="button button-positive" ng-show="!isStarted" ng-click="startBgGeo()">Start</a>
+            <a class="button button-positive" ng-show="isStarted" ng-click="stopBgGeo()">Stop</a>
+
+
+            <a class="button button-assertive" ng-show="isStarted && isMoving" ng-click="forceStationary()">Force Stationary</a>
+            <a class="button button-positive" ng-show="isStarted && !isMoving" ng-click="forceMoving()">Force Moving</a>
+
         </div>
 
 

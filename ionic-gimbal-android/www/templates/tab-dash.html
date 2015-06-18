@@ -1,0 +1,14 @@
+<ion-view view-title="Dashboard">
+  <ion-content class="padding">
+      <div class="button-bar">
+          <a class="button" ng-click="start()">Start</a>
+          <a class="button" ng-click="stop()">Stop</a>
+          <a class="button" ng-click="startScanSightings()">startScanSightings</a>
+          <a class="button" ng-click="stopScanSightings()">stopScanSightings</a>
+
+      </div>
+      <div class="padding">
+          <div ng-repeat="message in geoMessages track by $index">{{ message }}</div>
+      </div>
+  </ion-content>
+</ion-view>

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin xmlns="http://apache.org/cordova/ns/plugins/1.0"
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        id="com.fidemapps.demo.mobile"
+        version="0.0.1">
+    <name>Gimbal</name>
+    <description>Cordova Android Gimbal Plugin</description>
+    <author>Cyrille Guerin</author>
+    <license>Apache 2.0</license>
+    <keywords>cordova,gimbal,ibeacon</keywords>
+
+    <engines>
+        <engine name="cordova" version=">=3.0"/>
+    </engines>
+
+    <js-module src="www/Gimbal.js" name="Gimbal">
+        <clobbers target="Gimbal"/>
+    </js-module>
+
+    <platform name="android">
+        <config-file target="res/xml/config.xml" parent="/*">
+            <feature name="Gimbal">
+                <param name="android-package" value="com.fidemapps.demo.mobile.Gimbal"/>
+            </feature>
+        </config-file>
+
+        <config-file target="AndroidManifest.xml" parent="/*">
+            <uses-permission android:name="android.permission.INTERNET"/>
+            <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+            <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
+            <uses-permission android:name="android.permission.WAKE_LOCK"/>
+            <uses-permission android:name="android.permission.BATTERY_STATS"/>
+            <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+            <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+            <uses-permission android:name="android.permission.BLUETOOTH"/>
+            <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"/>
+            <uses-feature android:name="android.hardware.bluetooth_le" android:required="true"/>
+        </config-file>
+
+        <source-file src="src/android/libs/gimbal-dev-logging.jar" target-dir="libs/"/>
+        <source-file src="src/android/libs/gimbal.jar" target-dir="libs/"/>
+        <source-file src="src/android/libs/spring-android-core-1.0.1.RELEASE.jar" target-dir="libs/"/>
+        <source-file src="src/android/libs/spring-android-rest-template-1.0.1.RELEASE.jar" target-dir="libs/"/>
+
+        <source-file src="src/android/Gimbal.java" target-dir="src/com/fidemapps/demo/mobile"/>
+
+    </platform>
+
+
+</plugin>

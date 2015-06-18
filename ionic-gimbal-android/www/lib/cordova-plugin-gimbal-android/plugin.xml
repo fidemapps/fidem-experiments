@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin xmlns="http://apache.org/cordova/ns/plugins/1.0"
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        id="com.example.cordova.alert"
+        version="0.0.1">
+    <name>Alert Plugin</name>
+    <description>A plugin to show native alert</description>
+    <license>Apache 2.0</license>
+    <keywords>cordova,plugin,alert</keywords>
+  
+    <js-module src="www/plugin.js" name="Alert">
+        <clobbers target="cordova.plugins.Alert" />
+    </js-module>
+</plugin>

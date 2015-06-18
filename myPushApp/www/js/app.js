@@ -13,9 +13,9 @@ angular.module('starter', ['ionic', 'starter.controllers', 'ionic.service.core',
       // The public API key services will use for this app
       api_key: 'f3f58649f8b3e6297bd97c408f9b19a99d04b218b8b6e12c',
       // Your GCM sender ID/project number (Uncomment if supporting Android)
-      //gcm_id: 'YOUR_GCM_ID',
+      gcm_id: '623105855894'
       // Set the app to use development pushes
-      dev_push: true
+      //dev_push: true
     });
 
   }])

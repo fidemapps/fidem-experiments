@@ -1,18 +1,21 @@
 angular.module('starter.controllers', [])
 
-  .controller('DashCtrl', function ($scope, $rootScope, $window,$filter,  $ionicPlatform) {
+  .controller('DashCtrl', function ($scope, $rootScope, $window, $filter, $ionicPlatform, $timeout) {
 
     $scope.$on('fdGimbal:message', function (event, data) {
       var date = $filter('date')(new Date(), 'mediumTime');
       var message = date + ':' + data;
       console.log(message);
-      $scope.$apply(function(){
+      $timeout(function () {
           if ($scope.geoMessages.length >= 20) {
             $scope.geoMessages.splice(-1, 1);
           }
           $scope.geoMessages.unshift(message);
         }
-      )
+
+        , 100);
+
+
     });
 
 

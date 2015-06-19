@@ -17,7 +17,7 @@ public class Gimbal extends CordovaPlugin {
     private boolean isInitialized = false;
     private BeaconManager beaconManager = null;
     private BeaconEventListener gimbalBeaconListener = null;
-    private CallbackContext beaconFoundCallback  = null;
+    private CallbackContext beaconFoundCallback = null;
 
 
     private static final String TAG = Gimbal.class.getSimpleName() + "-fidemapps";
@@ -78,23 +78,11 @@ public class Gimbal extends CordovaPlugin {
                 @Override
                 public void onBeaconSighting(BeaconSighting sighting) {
                     Log.i(TAG, "BeaconSighting : " + sighting.toString());
-                    if(beaconFoundCallback != null) {
-                        try {
-                            JSONObject parameter = new JSONObject();
-                            parameter.put("beaconId", sighting.getBeacon().getIdentifier());
-                            parameter.put("beaconName", sighting.getBeacon().getName());
-                            parameter.put("beaconBatteryLevel", sighting.getBeacon().getBatteryLevel());
-                            parameter.put("beaconTemperature", sighting.getBeacon().getTemperature());
-                            parameter.put("beaconIconUrl", sighting.getBeacon().getIconURL());
-                            parameter.put("rssi", sighting.getRSSI());
-                            parameter.put("timeInMs", sighting.getTimeInMillis());
-                            PluginResult result = new PluginResult(PluginResult.Status.OK, parameter);
-                            result.setKeepCallback(true);
-                            beaconFoundCallback.sendPluginResult(result);
-
-                        } catch (JSONException e) {
-                            Log.e(TAG, e.toString());
-                        }
+                    if (beaconFoundCallback != null) {
+                        JSONObject beaconSighting = buildResult(sighting);
+                        PluginResult result = new PluginResult(PluginResult.Status.OK, beaconSighting);
+                        result.setKeepCallback(true);
+                        beaconFoundCallback.sendPluginResult(result);
                     }
                 }
             };
@@ -149,6 +137,25 @@ public class Gimbal extends CordovaPlugin {
         } else {
             Log.d(TAG, "Cannot stop  Gimbal Scan Sightings as Gimbal service  isn't currently running.");
         }
+    }
+
+    private JSONObject buildResult(BeaconSighting sighting) {
+        JSONObject beaconSighting = new JSONObject();
+        try {
+            JSONObject transmitter = new JSONObject();
+            transmitter.put("identifier", sighting.getBeacon().getIdentifier());
+            transmitter.put("name", sighting.getBeacon().getName());
+            transmitter.put("batteryLevel", sighting.getBeacon().getBatteryLevel());
+            transmitter.put("temperature", sighting.getBeacon().getTemperature());
+            transmitter.put("iconURL", sighting.getBeacon().getIconURL());
+            
+            beaconSighting.put("transmitter", transmitter);
+            beaconSighting.put("RSSI", sighting.getRSSI());
+            beaconSighting.put("timeInMillis", sighting.getTimeInMillis());
+        } catch (JSONException e) {
+            Log.e(TAG, e.toString());
+        }
+        return beaconSighting;
     }
 
     public BeaconManager getBeaconManager() {
